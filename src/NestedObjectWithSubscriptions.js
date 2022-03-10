@@ -6,7 +6,6 @@ import NestedObjectTree from "./NestedObjectTree.js";
 class NestedObjectWithSubscriptions extends NestedObject {
 	constructor() {
 		super();
-
 		this._mutationCallbacks = new NestedObjectTree();
 	}
 
@@ -62,6 +61,61 @@ class NestedObjectWithSubscriptions extends NestedObject {
 			subscribed = false;
 
 			this._removeSubscription(subscriptionPathParts, onMutation);
+		}
+	}
+
+	/**
+	 * Calculate a new value from values in the object, and store the result
+	 * @param argsPathsOrPathsParts
+	 * @param setPathOrPathParts
+	 * @param calculator
+	 * @param options
+	 * @returns {(function(): void)|*}
+	 */
+	calculate(argsPathsOrPathsParts, setPathOrPathParts, calculator, options = {}) {
+		const argsPathsParts = argsPathsOrPathsParts.map(NestedObject.pathPartsFromPath);
+		const setPathParts = NestedObject.pathPartsFromPath(setPathOrPathParts);
+
+		const sanitizedOptions = {
+			fetch: true,
+			...options
+		};
+
+		let subscribed = true;
+
+		const onArgMutated = () => {
+			const resultOrPromise = calculator(...argsPathsParts.map(argPathParts => this.get(argPathParts))) // spread args
+
+			if(resultOrPromise instanceof Promise) {
+				resultOrPromise.then(result => {
+					this.set(setPathParts, result);
+				});
+			}
+			else // result
+				this.set(setPathParts, resultOrPromise);
+		}
+
+		const argSubscriptions = [];
+
+		// subscribe to all args
+		for(let argPathOrPathParts of argsPathsOrPathsParts) {
+			argSubscriptions.push(this.subscribe(argPathOrPathParts, onArgMutated, {fetch: false})); // do not trigegr when adding individual args
+		}
+
+		if(sanitizedOptions.fetch)
+			onArgMutated();
+
+		// return unsubscribe function
+		return () => {
+			if(subscribed === false)
+				throw new ExtendedError("Already unsubscribed", {code: 'canceled_subscription'});
+
+			subscribed = false;
+
+			// unsubscribe from all args
+			for(let argUnsubscribe of argSubscriptions) {
+				argUnsubscribe();
+			}
 		}
 	}
 

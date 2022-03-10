@@ -1,8 +1,8 @@
-// Object Utils v1.0.7
+// Object Utils v1.0.9
 function objectFilterExclude(rawObject, pathsOrPathsParts = []) {
 	const clone = objectClone(rawObject);
-	for(let pathorPathParts of pathsOrPathsParts) {
-		objectDelete(clone, pathorPathParts);
+	for(let objectPath of pathsOrPathsParts) {
+		objectDelete(clone, objectPath);
 	}
 	return clone;
 }
@@ -23,8 +23,8 @@ function objectClone(rawObject) {
 	return JSON.parse(JSON.stringify(rawObject));
 }
 
-function indexArrayBy(array, pathOrPathParts) {
-	const pathParts = pathPartsFromPath(pathOrPathParts);
+function indexArrayBy(array, pathOrParts) {
+	const pathParts = pathPartsFromPath(pathOrParts);
 	return array.reduce((indexed, item) => {
 		if ((item instanceof Object)) {
 			const indexValue = objectGet(item, pathParts);
@@ -37,8 +37,11 @@ function indexArrayBy(array, pathOrPathParts) {
 }
 
 function objectDeepEqual(x, y) {
-	if((typeof x === 'object' && x !== null) && (typeof y === 'object' && y !== null)) {
-		if (Object.keys(x).length !== Object.keys(y).length)
+	if(x === y)
+		return true;
+
+	else if((typeof x === 'object' && x !== null) && (typeof y === 'object' && y !== null)) {
+		if(Object.keys(x).length !== Object.keys(y).length)
 			return false;
 
 		for(let prop in x) {
@@ -90,8 +93,8 @@ function objectDiffs(x, y) {
 	return diffPaths;
 }
 
-function objectDelete(object, pathorPathParts) {
-	const pathParts = pathPartsFromPath(pathorPathParts);
+function objectDelete(object, objectPath) {
+	const pathParts = pathPartsFromPath(objectPath);
 
 	if(pathParts.length === 0) { // delete root
 		for(let property in object) {
@@ -108,8 +111,8 @@ function objectDelete(object, pathorPathParts) {
 	}
 }
 
-function objectHas(object, pathorPathParts) {
-	const pathParts = pathPartsFromPath(pathorPathParts);
+function objectHas(object, objectPath) {
+	const pathParts = pathPartsFromPath(objectPath);
 
 	if(pathParts.length === 0)
 		return true;
@@ -119,8 +122,8 @@ function objectHas(object, pathorPathParts) {
 		return objectHas(object[pathParts[0]], pathParts.slice(1));
 }
 
-function objectGet(object, pathorPathParts) {
-	const pathParts = pathPartsFromPath(pathorPathParts);
+function objectGet(object, objectPath) {
+	const pathParts = pathPartsFromPath(objectPath);
 
 	if(pathParts.length === 0)
 		return object;
@@ -130,63 +133,119 @@ function objectGet(object, pathorPathParts) {
 		return objectGet(object[pathParts[0]], pathParts.slice(1));
 }
 
-function objectSet(object, pathorPathParts, value) {
-	const pathParts = pathPartsFromPath(pathorPathParts);
+function objectSet(object, objectPath, value, options = {}) {
+	const pathParts = pathPartsFromPath(objectPath);
 	const objectKey = pathParts[0];
 	if(pathParts.length === 1)
 		object[objectKey] = value;
 	else {
-		if(typeof object[objectKey] !== 'object' || object[objectKey] === null)
-			object[objectKey] = {};
-		objectSet(object[objectKey], pathParts.slice(1), value);
+		if(typeof object[objectKey] !== 'object' || object[objectKey] === null) {
+			object[objectKey] = (options.array && (typeof objectKey === "number" || (typeof objectKey === "string" && /^\d+$/.test(objectKey))))
+				? []
+				: {};
+		}
+
+		objectSet(object[objectKey], pathParts.slice(1), value, options);
 	}
+	return object;
+}
+
+function objectSetImmutable(object, objectPath, value, options = {}) {
+	const pathParts = pathPartsFromPath(objectPath);
+	const objectKey = pathParts[0];
+	if(pathParts.length === 0)
+		return value;
+	else {
+		if(typeof object !== "object" || object === null) { // create it
+			if((options.array && (typeof objectKey === "number" || (typeof objectKey === "string" && /^\d+$/.test(objectKey)))))
+				object = [];
+			else
+				object = {};
+		}
+
+		if(Array.isArray(object)) {
+			const arrayClone = [...object];
+			if((options.array && (typeof objectKey === "number" || (typeof objectKey === "string" && /^\d+$/.test(objectKey)))))
+				arrayClone[Number(objectKey)] = objectSetImmutable(object[objectKey], pathParts.slice(1), value, options);
+			else
+				arrayClone[objectKey] = objectSetImmutable(object[objectKey], pathParts.slice(1), value, options);
+
+			return arrayClone;
+		}
+		else
+			return {...object, ...{[objectKey]: objectSetImmutable(object[objectKey], pathParts.slice(1), value, options)}}
+	}
+}
+
+function objectDeleteImmutable(object, objectPath) {
+	if(!objectHas(object, objectPath)) // nothing to remove
+		return object;
+
+	const pathParts = pathPartsFromPath(objectPath);
+
+	const parentObjectPath = pathParts.slice(0, -1);
+	const removeProp = pathParts[pathParts.length - 1];
+	const parentObject = objectGet(object, parentObjectPath);
+
+	const parentObjectClone = {...parentObject};
+	delete parentObjectClone[removeProp];
+	return objectSetImmutable(object, parentObjectPath, parentObjectClone);
+}
+
+function flattenObjectProps(object, flattened = [], prefixParts = []) {
+	if(!object instanceof Object)
+		return flattened;
+
+	for(let prop in object) {
+		if(object.hasOwnProperty(prop)) {
+			flattened.push(prefixParts.concat([prop]).join("."));
+			if(typeof object[prop] === "object" && object[prop] !== null)
+				flattenObjectProps(object[prop], flattened, prefixParts.concat([prop]));
+		}
+	}
+
+	return flattened;
 }
 
 function flattenObject(object, flattened = {}, prefixPathParts = []) {
-	return flattenInternal(object);
-
-	function flattenInternal(object, flattened = {}, prefixPathParts = []) {
-		if(!(object instanceof Object))
-			return object;
-
-		for(let prop in object) {
-			if(object.hasOwnProperty(prop)) {
-				const fullPathParts = prefixPathParts.concat([prop]);
-				if(typeof object[prop] === "object" && object[prop] !== null)
-					flattenInternal(object[prop], flattened, fullPathParts);
-				else
-					flattened[pathFromPathParts(fullPathParts)] = object[prop]
-			}
-		}
-
+	if(!object instanceof Object)
 		return flattened;
+
+	for(let prop in object) {
+		if(object.hasOwnProperty(prop)) {
+			if(typeof object[prop] === "object" && object[prop] !== null)
+				flattenObject(object[prop], flattened, prefixPathParts.concat([prop]));
+			else
+				flattened[prefixPathParts.concat([prop]).join(".")] = object[prop];
+		}
 	}
 
+	return flattened;
 }
 
-function pathPartsFromPath(pathOrPathParts) {
-	return Array.isArray(pathOrPathParts)
-		? pathOrPathParts
-		: pathOrPathParts.split('.');
+function pathPartsFromPath(objectPathOrParts) {
+	return Array.isArray(objectPathOrParts) ? objectPathOrParts : objectPathOrParts.split('.');
 }
 
-function pathFromPathParts(pathOrPathParts) {
-	return Array.isArray(pathOrPathParts)
-		? pathOrPathParts.join('.')
-		: pathOrPathParts;
+function pathFromPathParts(objectPathOrParts) {
+	return Array.isArray(objectPathOrParts) ? objectPathOrParts.join('.') : objectPathOrParts;
 }
 
 export {
 	objectFilterExclude,
 	objectFilterInclude,
 	objectClone,
+	objectDiffs,
 	indexArrayBy,
 	objectDeepEqual,
 	objectDelete,
 	objectHas,
 	objectGet,
 	objectSet,
+	objectSetImmutable,
+	objectDeleteImmutable,
 	flattenObject,
+	flattenObjectProps,
 	pathPartsFromPath,
 	pathFromPathParts
 }
