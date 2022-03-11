@@ -1,4 +1,4 @@
-// Object Utils v1.0.9
+// Object Utils v1.0.10
 function objectFilterExclude(rawObject, pathsOrPathsParts = []) {
 	const clone = objectClone(rawObject);
 	for(let objectPath of pathsOrPathsParts) {
@@ -232,6 +232,25 @@ function pathFromPathParts(objectPathOrParts) {
 }
 
 export {
+	objectFilterExclude,
+	objectFilterInclude,
+	objectClone,
+	objectDiffs,
+	indexArrayBy,
+	objectDeepEqual,
+	objectDelete,
+	objectHas,
+	objectGet,
+	objectSet,
+	objectSetImmutable,
+	objectDeleteImmutable,
+	flattenObject,
+	flattenObjectProps,
+	pathPartsFromPath,
+	pathFromPathParts,
+}
+
+export default {
 	objectFilterExclude,
 	objectFilterInclude,
 	objectClone,
