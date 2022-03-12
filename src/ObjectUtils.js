@@ -1,6 +1,6 @@
-// Object Utils v1.0.10
-function objectFilterExclude(rawObject, pathsOrPathsParts = []) {
-	const clone = objectClone(rawObject);
+// Object Utils v1.0.11
+function objectFilterExclude(rawObject, pathsOrPathsParts = [], deepClone = true) {
+	const clone = objectClone(rawObject, deepClone);
 	for(let objectPath of pathsOrPathsParts) {
 		objectDelete(clone, objectPath);
 	}
@@ -19,8 +19,11 @@ function objectFilterInclude(rawObject, pathsOrPathsParts = []) {
 	return filteredObject;
 }
 
-function objectClone(rawObject) {
-	return JSON.parse(JSON.stringify(rawObject));
+function objectClone(rawObject, deep = true) {
+	if(deep)
+		return structuredClone(rawObject);
+	else
+		return { ...rawObject };
 }
 
 function indexArrayBy(array, pathOrParts) {
