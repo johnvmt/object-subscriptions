@@ -10,7 +10,7 @@ Nested object with mutations and subscribers
     obj.set("aa.bb", 123);
     obj.set("cc.dd", 123);
     
-    obj.calculate(["aa.bb", "cc.dd"], "ee.ff", (a, b) => {
+    obj.calculate("ee.ff", ["aa.bb", "cc.dd"], (a, b) => {
         return a + b;
     })
     

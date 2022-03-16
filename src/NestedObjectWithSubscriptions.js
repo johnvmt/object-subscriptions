@@ -66,13 +66,13 @@ class NestedObjectWithSubscriptions extends NestedObject {
 
 	/**
 	 * Calculate a new value from values in the object, and store the result
-	 * @param argsPathsOrPathsParts
 	 * @param setPathOrPathParts
+	 * @param argsPathsOrPathsParts
 	 * @param calculator
 	 * @param options
 	 * @returns {(function(): void)|*}
 	 */
-	calculate(argsPathsOrPathsParts, setPathOrPathParts, calculator, options = {}) {
+	calculate(setPathOrPathParts, argsPathsOrPathsParts, calculator, options = {}) {
 		const argsPathsParts = argsPathsOrPathsParts.map(NestedObject.pathPartsFromPath);
 		const setPathParts = NestedObject.pathPartsFromPath(setPathOrPathParts);
 
