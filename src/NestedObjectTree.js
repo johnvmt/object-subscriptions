@@ -1,8 +1,9 @@
 import NestedObject from "./NestedObject.js";
 
 class NestedObjectTree {
-    constructor() {
-        this._tree = new NestedObject();
+    constructor(options = {}) {
+        this._tree = new NestedObject(options);
+        this._options = options;
     }
 
     /**
@@ -11,7 +12,7 @@ class NestedObjectTree {
      * @returns {boolean|boolean|*}
      */
     hasValue(pathOrPathParts) {
-        return this._tree.has(NestedObjectTree._hierarchyValuePathParts(pathOrPathParts));
+        return this._tree.has(this._hierarchyValuePathParts(pathOrPathParts));
     }
 
     /**
@@ -20,7 +21,7 @@ class NestedObjectTree {
      * @returns {*}
      */
     getValue(pathOrPathParts) {
-        return this._tree.get(NestedObjectTree._hierarchyValuePathParts(pathOrPathParts));
+        return this._tree.get(this._hierarchyValuePathParts(pathOrPathParts));
     }
 
     /**
@@ -29,7 +30,7 @@ class NestedObjectTree {
      * @param value
      */
     setValue(pathOrPathParts, value) {
-        return this._tree.set(NestedObjectTree._hierarchyValuePathParts(pathOrPathParts), value);
+        return this._tree.set(this._hierarchyValuePathParts(pathOrPathParts), value);
     }
 
     /**
@@ -38,13 +39,21 @@ class NestedObjectTree {
      * @returns {*}
      */
     deleteValue(pathOrPathParts) {
-        const hierarchyPathParts = NestedObjectTree._hierarchyPathParts(pathOrPathParts);
+        const hierarchyPathParts = this._hierarchyPathParts(pathOrPathParts);
         const hierarchyValuePathParts = [...hierarchyPathParts, 'value'];
         const deleteResult = this._tree.delete(hierarchyValuePathParts);
 
         this._pruneNodes(hierarchyPathParts);
 
         return deleteResult;
+    }
+
+    pathPartsFromPath(pathOrPathParts) {
+        return this._tree.pathPartsFromPath(pathOrPathParts, this._options.separator);
+    }
+
+    pathFromPathParts(pathOrPathParts) {
+        return this._tree.pathFromPathParts(pathOrPathParts, this._options.separator);
     }
 
     /**
@@ -54,7 +63,7 @@ class NestedObjectTree {
      * @returns {Generator<*, void, *>}
      */
     * familyNodes(pathOrPathParts) {
-        const hierarchyPathParts = NestedObjectTree._hierarchyPathParts(pathOrPathParts);
+        const hierarchyPathParts = this._hierarchyPathParts(pathOrPathParts);
         yield * this._hierarchyFamilyNodes(hierarchyPathParts);
     }
 
@@ -78,7 +87,7 @@ class NestedObjectTree {
      * @returns {Generator<*, void, *>}
      */
     * depthFirstNodes(pathOrPathParts = []) {
-        const hierarchyPathParts = NestedObjectTree._hierarchyPathParts(pathOrPathParts);
+        const hierarchyPathParts = this._hierarchyPathParts(pathOrPathParts);
         yield * this._hierarchyDescendantNodes(hierarchyPathParts);
     }
 
@@ -100,7 +109,7 @@ class NestedObjectTree {
      * @returns {Generator<*, void, *>}
      */
     * ancestorNodes(pathOrPathParts) {
-        let hierarchyPathParts = NestedObjectTree._hierarchyPathParts(pathOrPathParts);
+        let hierarchyPathParts = this._hierarchyPathParts(pathOrPathParts);
         yield * this._hierarchyAncestorNodes(hierarchyPathParts);
     }
 
@@ -145,8 +154,8 @@ class NestedObjectTree {
      * @private
      */
     * _hierarchyAncestorNodes(hierarchyPathParts) {
-        while(!NestedObjectTree._isHierarchyRootPath(hierarchyPathParts)) { // while not the root node
-            hierarchyPathParts = NestedObjectTree._hierarchyParentPathParts(hierarchyPathParts); // get path to parent node
+        while(!this._isHierarchyRootPath(hierarchyPathParts)) { // while not the root node
+            hierarchyPathParts = this._hierarchyParentPathParts(hierarchyPathParts); // get path to parent node
             if(this._tree.has(hierarchyPathParts))
                 yield this._tree.get(hierarchyPathParts);
         }
@@ -178,11 +187,11 @@ class NestedObjectTree {
     _pruneNodes(hierarchyPathParts) {
         const node = this._tree.get(hierarchyPathParts);
 
-        if(!node.hasOwnProperty('value') && !node.hasOwnProperty('children') && !NestedObjectTree._isHierarchyRootPath(hierarchyPathParts)) {
+        if(!node.hasOwnProperty('value') && !node.hasOwnProperty('children') && !this._isHierarchyRootPath(hierarchyPathParts)) {
             // not root
             // if root, cannot remove children from nonexistant parent
             // if not root delete this node, since it has no value and no children
-            const hierarchyParentPathParts = NestedObjectTree._hierarchyParentPathParts(hierarchyPathParts);
+            const hierarchyParentPathParts = this._hierarchyParentPathParts(hierarchyPathParts);
             const childPathPart = hierarchyPathParts[hierarchyPathParts.length - 1]; // key of child; eg: path2 from path1.children.path2
 
             const parentNode = this._tree.get(hierarchyParentPathParts);
@@ -197,33 +206,29 @@ class NestedObjectTree {
         }
     }
 
-    static _isHierarchyRootPath(hierarchyPathOrPathParts) {
-        return NestedObjectTree.pathPartsFromPath(hierarchyPathOrPathParts).length < 2;
+    _isHierarchyRootPath(hierarchyPathOrPathParts) {
+        return this._tree.pathPartsFromPath(hierarchyPathOrPathParts).length < 2;
     }
 
-    static _hierarchyParentPathParts(hierarchyPathOrPathParts) {
-        const hierarchyPathParts = NestedObjectTree.pathPartsFromPath(hierarchyPathOrPathParts);
+    _hierarchyParentPathParts(hierarchyPathOrPathParts) {
+        const hierarchyPathParts = this._tree.pathPartsFromPath(hierarchyPathOrPathParts);
         return hierarchyPathParts.slice(0, -2);
     }
 
-    static _hierarchyPathParts(pathOrPathParts) {
-        const pathParts = NestedObjectTree.pathPartsFromPath(pathOrPathParts);
+    _hierarchyPathParts(pathOrPathParts) {
+        const pathParts = this._tree.pathPartsFromPath(pathOrPathParts);
 
         // children, <part1>, children, <part2>
         return pathParts.reduce((emitterPathParts, pathPart) => [...emitterPathParts, 'children', pathPart], []);
     }
 
-    static _hierarchyValuePathParts(pathOrPathParts) {
+    _hierarchyValuePathParts(pathOrPathParts) {
         // children, <part1>, children, <part2>, value
         return [
-            ...NestedObjectTree._hierarchyPathParts(pathOrPathParts),
+            ...this._hierarchyPathParts(pathOrPathParts),
             'value'
         ];
     }
-
-    static pathPartsFromPath = NestedObject.pathPartsFromPath;
-
-    static pathFromPathParts = NestedObject.pathFromPathParts;
 }
 
 export default NestedObjectTree;

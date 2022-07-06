@@ -4,14 +4,14 @@ import NestedObject from "./NestedObject.js";
 import NestedObjectTree from "./NestedObjectTree.js";
 
 class NestedObjectWithSubscriptions extends NestedObject {
-	constructor() {
-		super();
-		this._mutationCallbacks = new NestedObjectTree();
+	constructor(object, options) {
+		super(object, options);
+		this._mutationCallbacks = new NestedObjectTree(options);
 	}
 
 	set(pathOrPathParts, value) {
-		const pathParts = NestedObject.pathPartsFromPath(pathOrPathParts);
-		const path = NestedObject.pathFromPathParts(pathOrPathParts);
+		const pathParts = this.pathPartsFromPath(pathOrPathParts);
+		const path = this.pathFromPathParts(pathOrPathParts);
 		if(!this.has(pathParts) || this.get(pathParts) !== value) {
 			const result = super.set(pathParts, value);
 			this._emitMutation(path, pathParts, value, NestedObjectWithSubscriptions.MUTATIONS.SET);
@@ -20,8 +20,8 @@ class NestedObjectWithSubscriptions extends NestedObject {
 	}
 
 	delete(pathOrPathParts) {
-		const pathParts = NestedObject.pathPartsFromPath(pathOrPathParts);
-		const path = NestedObject.pathFromPathParts(pathOrPathParts);
+		const pathParts = this.pathPartsFromPath(pathOrPathParts);
+		const path = this.pathFromPathParts(pathOrPathParts);
 		if(this.has(pathParts)) {
 			const result = super.delete(pathParts);
 			this._emitMutation(path, pathParts, undefined, NestedObjectWithSubscriptions.MUTATIONS.DELETE);
@@ -37,8 +37,8 @@ class NestedObjectWithSubscriptions extends NestedObject {
 
 		let subscribed = true;
 
-		const subscriptionPath = NestedObject.pathFromPathParts(pathOrPathParts);
-		const subscriptionPathParts = NestedObject.pathPartsFromPath(pathOrPathParts);
+		const subscriptionPath = this.pathFromPathParts(pathOrPathParts);
+		const subscriptionPathParts = this.pathPartsFromPath(pathOrPathParts);
 
 		const onMutation = (mutatedPath, mutatedValue, mutation) => {
 			callback(this.get(subscriptionPathParts), {
@@ -73,8 +73,8 @@ class NestedObjectWithSubscriptions extends NestedObject {
 	 * @returns {(function(): void)|*}
 	 */
 	calculate(setPathOrPathParts, argsPathsOrPathsParts, calculator, options = {}) {
-		const argsPathsParts = argsPathsOrPathsParts.map(NestedObject.pathPartsFromPath);
-		const setPathParts = NestedObject.pathPartsFromPath(setPathOrPathParts);
+		const argsPathsParts = argsPathsOrPathsParts.map(argsPathsPart => this.pathPartsFromPath(argsPathsPart));
+		const setPathParts = this.pathPartsFromPath(setPathOrPathParts);
 
 		const sanitizedOptions = {
 			fetch: true,
