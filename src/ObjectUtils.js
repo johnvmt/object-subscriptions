@@ -243,13 +243,17 @@ function * traverseObject(objectOrPrimitive, options = {}) {
 			? prefixPathParts
 			: pathFromPathParts(prefixPathParts, options.separator);
 
-		if(typeof objectOrPrimitive === 'object' && objectOrPrimitive !== null) { // object
+		const objectOrPrimitiveIsBranch = typeof objectOrPrimitive === 'object' && objectOrPrimitive !== null;
+
+		if(options.branchNodes || !objectOrPrimitiveIsBranch)
+			yield [pathOrPathParts, objectOrPrimitive];
+
+		if(objectOrPrimitiveIsBranch) { // object
 			for(let [pathPart, childObjectOrPrimitive] of Object.entries(objectOrPrimitive)) {
 				yield * traverseObjectInternal(childObjectOrPrimitive, [...prefixPathParts, pathPart]);
 			}
 		}
-		else // primitive
-			yield [pathOrPathParts, objectOrPrimitive]
+
 	}
 
 	yield * traverseObjectInternal(objectOrPrimitive, []);
