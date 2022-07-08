@@ -221,7 +221,7 @@ function flattenObject(object, options = {}) {
 	function flattenObjectInternal(object, flattened, prefixPathParts) {
 		if(!object instanceof Object)
 			return flattened;
-		
+
 		for(let prop in object) {
 			if(object.hasOwnProperty(prop)) {
 				if(typeof object[prop] === 'object' && object[prop] !== null)
@@ -253,21 +253,26 @@ function * traverseObject(objectOrPrimitive, options = {}) {
 				yield * traverseObjectInternal(childObjectOrPrimitive, [...prefixPathParts, pathPart]);
 			}
 		}
-
 	}
 
 	yield * traverseObjectInternal(objectOrPrimitive, []);
 }
 
+function sanitizePathParts(pathParts) {
+	return pathParts.filter(pathPart => pathPart.length);
+}
+
 function pathPartsFromPath(objectPathOrParts, separator = '.') {
-	return Array.isArray(objectPathOrParts)
+	const pathParts = Array.isArray(objectPathOrParts)
 		? objectPathOrParts
 		: objectPathOrParts.split(separator);
+
+	return sanitizePathParts(pathParts);
 }
 
 function pathFromPathParts(objectPathOrParts, separator = '.') {
 	return Array.isArray(objectPathOrParts)
-		? objectPathOrParts.join(separator)
+		? sanitizePathParts(objectPathOrParts).join(separator)
 		: objectPathOrParts;
 }
 
