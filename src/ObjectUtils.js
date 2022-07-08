@@ -181,7 +181,7 @@ function objectSetImmutable(object, objectPath, value, options = {}) {
 }
 
 function objectDeleteImmutable(object, objectPath, options = {}) {
-	if(!objectHas(object, objectPath)) // nothing to remove
+	if(!objectHas(object, objectPath, options)) // nothing to remove
 		return object;
 
 	const pathParts = pathPartsFromPath(objectPath, options.separator);
