@@ -1,7 +1,10 @@
 {
   "name": "object-subscriptions",
-  "version": "0.2.0",
-  "repository": "https://github.com/johnvmt/object-subscriptions.git",
+  "version": "0.2.1",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnvmt/object-subscriptions.git"
+  },
   "author": {
     "name": "John Murphy-Teixidor",
     "email": "johnvmt@gmail.com"

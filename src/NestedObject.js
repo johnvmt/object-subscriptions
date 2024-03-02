@@ -11,7 +11,10 @@ import {
 class NestedObject {
 	constructor(object = {}, options = {}) {
 		this._object = object;
-		this._options = options;
+		this._options = {
+			separator: ".", // default separator for path parts
+			...options
+		};
 	}
 
 	* entries(options = {}) {

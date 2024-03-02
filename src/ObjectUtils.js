@@ -1,4 +1,4 @@
-// Object Utils v1.0.12
+// Object Utils v1.0.14
 function objectFilterExclude(rawObject, pathsOrPathsParts = [], deepClone = true) {
 	const clone = objectClone(rawObject, deepClone);
 	for(let objectPath of pathsOrPathsParts) {
@@ -20,10 +20,14 @@ function objectFilterInclude(rawObject, pathsOrPathsParts = [], options = {}) {
 }
 
 function objectClone(rawObject, deep = true) {
-	if(deep)
-		return structuredClone(rawObject);
-	else
-		return { ...rawObject };
+	if(typeof value === "object" && value !== null) {
+		if(deep)
+			return structuredClone(rawObject);
+		else
+			return { ...rawObject };
+	}
+	else // scalar
+		return rawObject;
 }
 
 function indexArrayBy(array, pathOrParts, options = {}) {
@@ -96,6 +100,7 @@ function objectDiffs(x, y) {
 	return diffPaths;
 }
 
+// TODO add prune
 function objectDelete(object, objectPath, options = {}) {
 	const pathParts = pathPartsFromPath(objectPath, options.separator);
 
@@ -138,27 +143,33 @@ function objectGet(object, objectPath, options = {}) {
 
 function objectSet(object, objectPath, value, options = {}) {
 	const pathParts = pathPartsFromPath(objectPath, options.separator);
-	const objectKey = pathParts[0];
-	if(pathParts.length === 1)
-		object[objectKey] = value;
-	else {
-		if(typeof object[objectKey] !== 'object' || object[objectKey] === null) {
-			object[objectKey] = (options.array && (typeof objectKey === 'number' || (typeof objectKey === 'string' && /^\d+$/.test(objectKey))))
-				? []
-				: {};
-		}
 
-		objectSet(object[objectKey], pathParts.slice(1), value, options);
+	if(pathParts.length === 0) // setting whole object, cannot set in place
+		return value;
+	else { // setting part of object
+		const objectKey = pathParts[0];
+		if(pathParts.length === 1)
+			object[objectKey] = value;
+		else {
+			if(typeof object[objectKey] !== 'object' || object[objectKey] === null) {
+				object[objectKey] = (options.array && (typeof objectKey === 'number' || (typeof objectKey === 'string' && /^\d+$/.test(objectKey))))
+					? []
+					: {};
+			}
+
+			objectSet(object[objectKey], pathParts.slice(1), value, options);
+		}
+		return object;
 	}
-	return object;
 }
 
 function objectSetImmutable(object, objectPath, value, options = {}) {
 	const pathParts = pathPartsFromPath(objectPath, options.separator);
-	const objectKey = pathParts[0];
+
 	if(pathParts.length === 0)
 		return value;
-	else {
+	else { // setting part of object
+		const objectKey = pathParts[0];
 		if(typeof object !== 'object' || object === null) { // create it
 			if((options.array && (typeof objectKey === 'number' || (typeof objectKey === 'string' && /^\d+$/.test(objectKey)))))
 				object = [];

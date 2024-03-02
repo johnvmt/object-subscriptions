@@ -50,7 +50,7 @@ Nested object with mutations and subscribers
     const obj = new NestedObjectWithSubscriptions({}, {separator: '/'});
 
     obj.set("aa/bb", 123);
-
+    
     const child = obj.child("aa");
-
-    console.log("VAL!", child/get());
+    
+    console.log("VAL!", child.get([]));
