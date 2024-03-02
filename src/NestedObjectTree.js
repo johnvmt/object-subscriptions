@@ -40,7 +40,7 @@ class NestedObjectTree {
      */
     deleteValue(pathOrPathParts) {
         const hierarchyPathParts = this._hierarchyPathParts(pathOrPathParts);
-        const hierarchyValuePathParts = [...hierarchyPathParts, 'value'];
+        const hierarchyValuePathParts = [...hierarchyPathParts, "value"];
         const deleteResult = this._tree.delete(hierarchyValuePathParts);
 
         this._pruneNodes(hierarchyPathParts);
@@ -48,10 +48,20 @@ class NestedObjectTree {
         return deleteResult;
     }
 
+    /**
+     * Split path parts
+     * @param pathOrPathParts
+     * @returns {*}
+     */
     pathPartsFromPath(pathOrPathParts) {
         return this._tree.pathPartsFromPath(pathOrPathParts, this._options.separator);
     }
 
+    /**
+     * Join path parts
+     * @param pathOrPathParts
+     * @returns {*}
+     */
     pathFromPathParts(pathOrPathParts) {
         return this._tree.pathFromPathParts(pathOrPathParts, this._options.separator);
     }
@@ -75,7 +85,7 @@ class NestedObjectTree {
      */
     * familyValues(pathOrPathParts) {
         for(let node of this.familyNodes(pathOrPathParts)) {
-            if(node.hasOwnProperty('value'))
+            if(node.hasOwnProperty("value"))
                 yield node.value;
         }
     }
@@ -98,7 +108,7 @@ class NestedObjectTree {
      */
     * depthFirstValues(pathOrPathParts) {
         for(let node of this.depthFirstNodes(pathOrPathParts)) {
-            if(node.hasOwnProperty('value'))
+            if(node.hasOwnProperty("value"))
                 yield node.value;
         }
     }
@@ -120,7 +130,7 @@ class NestedObjectTree {
      */
     * ancestorValues(pathOrPathParts) {
         for(let node of this.ancestorNodes(pathOrPathParts)) {
-            if(node.hasOwnProperty('value'))
+            if(node.hasOwnProperty("value"))
                 yield node.value;
         }
     }
@@ -170,7 +180,7 @@ class NestedObjectTree {
     * _depthFirstTraverseNodes(node) {
         if(node) {
             // go to all leaves
-            if(node.hasOwnProperty('children')) {
+            if(node.hasOwnProperty("children")) {
                 for(let [childPathPart, childNode] of Object.entries(node.children))
                     yield * this._depthFirstTraverseNodes(childNode);
             }
@@ -187,7 +197,7 @@ class NestedObjectTree {
     _pruneNodes(hierarchyPathParts) {
         const node = this._tree.get(hierarchyPathParts);
 
-        if(!node.hasOwnProperty('value') && !node.hasOwnProperty('children') && !this._isHierarchyRootPath(hierarchyPathParts)) {
+        if(!node.hasOwnProperty("value") && !node.hasOwnProperty("children") && !this._isHierarchyRootPath(hierarchyPathParts)) {
             // not root
             // if root, cannot remove children from nonexistant parent
             // if not root delete this node, since it has no value and no children
@@ -200,7 +210,6 @@ class NestedObjectTree {
 
             if(Object.keys(parentNode.children).length === 0) { // this was the parent's only child
                 delete parentNode.children;
-
                 this._pruneNodes(hierarchyParentPathParts);
             }
         }
@@ -219,14 +228,14 @@ class NestedObjectTree {
         const pathParts = this._tree.pathPartsFromPath(pathOrPathParts);
 
         // children, <part1>, children, <part2>
-        return pathParts.reduce((emitterPathParts, pathPart) => [...emitterPathParts, 'children', pathPart], []);
+        return pathParts.reduce((emitterPathParts, pathPart) => [...emitterPathParts, "children", pathPart], []);
     }
 
     _hierarchyValuePathParts(pathOrPathParts) {
         // children, <part1>, children, <part2>, value
         return [
             ...this._hierarchyPathParts(pathOrPathParts),
-            'value'
+            "value"
         ];
     }
 }

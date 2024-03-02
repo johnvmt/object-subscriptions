@@ -1,4 +1,12 @@
-import { traverseObject, objectHas, objectSet, objectGet, objectDelete, pathPartsFromPath, pathFromPathParts } from "./ObjectUtils.js";
+import {
+	traverseObject,
+	objectHas,
+	objectSet,
+	objectGet,
+	objectDelete,
+	pathPartsFromPath,
+	pathFromPathParts
+} from "./ObjectUtils.js";
 
 class NestedObject {
 	constructor(object = {}, options = {}) {
@@ -8,6 +16,10 @@ class NestedObject {
 
 	* entries(options = {}) {
 		yield * traverseObject(this._object, { ...this._options, ...options});
+	}
+
+	get options() {
+		return this._options;
 	}
 
 	has(pathOrPathParts) {

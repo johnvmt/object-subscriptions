@@ -1,5 +1,13 @@
-export { default as ObjectUtils } from "./ObjectUtils.js";
-export { default as NestedObject } from "./NestedObject.js";
-export { default as NestedObjectTree } from "./NestedObjectTree.js";
-export { default as NestedObjectWithSubscriptions } from "./NestedObjectWithSubscriptions.js";
-export { default as default } from "./NestedObjectWithSubscriptions.js";
+import ObjectUtils from "./ObjectUtils.js";
+import NestedObject from "./NestedObject.js";
+import NestedObjectTree from "./NestedObjectTree.js";
+import NestedObjectWithSubscriptions from "./NestedObjectWithSubscriptions.js";
+import NestedObjectWithSubscriptionsChild from "./NestedObjectWithSubscriptionsChild.js";
+
+export {
+    ObjectUtils,
+    NestedObject,
+    NestedObjectTree,
+    NestedObjectWithSubscriptions,
+    NestedObjectWithSubscriptionsChild
+};

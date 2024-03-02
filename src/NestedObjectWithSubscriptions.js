@@ -2,11 +2,16 @@
 import ExtendedError from "./ExtendedError.js";
 import NestedObject from "./NestedObject.js";
 import NestedObjectTree from "./NestedObjectTree.js";
+import NestedObjectWithSubscriptionsChild from "./NestedObjectWithSubscriptionsChild.js";
 
 class NestedObjectWithSubscriptions extends NestedObject {
 	constructor(object, options) {
 		super(object, options);
 		this._mutationCallbacks = new NestedObjectTree(options);
+	}
+
+	child(pathOrPathParts) {
+		return new NestedObjectWithSubscriptionsChild(this, pathOrPathParts);
 	}
 
 	set(pathOrPathParts, value) {
@@ -56,7 +61,7 @@ class NestedObjectWithSubscriptions extends NestedObject {
 		// return unsubscribe function
 		return () => {
 			if(subscribed === false)
-				throw new ExtendedError("Already unsubscribed", {code: 'canceled_subscription'});
+				throw new ExtendedError("Already unsubscribed", {code: "canceled_subscription"});
 
 			subscribed = false;
 
@@ -108,7 +113,7 @@ class NestedObjectWithSubscriptions extends NestedObject {
 		// return unsubscribe function
 		return () => {
 			if(subscribed === false)
-				throw new ExtendedError("Already unsubscribed", {code: 'canceled_subscription'});
+				throw new ExtendedError("Already unsubscribed", {code: "canceled_subscription"});
 
 			subscribed = false;
 
@@ -145,9 +150,9 @@ class NestedObjectWithSubscriptions extends NestedObject {
 
 	static get MUTATIONS() {
 		return Object.freeze({
-			SET: 'SET',
-			DELETE: 'DELETE',
-			FETCH: 'FETCH'
+			SET: "SET",
+			DELETE: "DELETE",
+			FETCH: "FETCH"
 		});
 	}
 }
