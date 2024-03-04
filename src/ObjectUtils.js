@@ -1,4 +1,10 @@
-// Object Utils v1.0.14
+// Object Utils v1.0.15
+const defaultOptions = {
+	separator: "/",
+	parent: "..",
+	current: ".",
+};
+
 function objectFilterExclude(rawObject, pathsOrPathsParts = [], deepClone = true) {
 	const clone = objectClone(rawObject, deepClone);
 	for(let objectPath of pathsOrPathsParts) {
@@ -47,7 +53,7 @@ function objectDeepEqual(x, y) {
 	if(x === y)
 		return true;
 
-	else if((typeof x === 'object' && x !== null) && (typeof y === 'object' && y !== null)) {
+	else if((typeof x === "object" && x !== null) && (typeof y === "object" && y !== null)) {
 		if(Object.keys(x).length !== Object.keys(y).length)
 			return false;
 
@@ -69,12 +75,12 @@ function objectDiffs(x, y) {
 	const diffPaths = [];
 
 	const objectDiffsX = (x, y, prefix = []) => {
-		if(typeof x === 'object' && x !== null) {
+		if(typeof x === "object" && x !== null) {
 			for(let prop in x) {
 				if(x.hasOwnProperty(prop)) {
-					if(typeof x[prop] === 'object' && x[prop] !== null) // x[prop] is an object
-						objectDiffsX(x[prop], (typeof y === 'object' && y !== null) ? y[prop] : undefined, prefix.concat([prop]));
-					else if (typeof y !== 'object' || y === null || x[prop] !== y[prop]) // x[prop] is not an object and doesnt match y[prop]
+					if(typeof x[prop] === "object" && x[prop] !== null) // x[prop] is an object
+						objectDiffsX(x[prop], (typeof y === "object" && y !== null) ? y[prop] : undefined, prefix.concat([prop]));
+					else if (typeof y !== "object" || y === null || x[prop] !== y[prop]) // x[prop] is not an object and doesnt match y[prop]
 						diffPaths.push(prefix.concat([prop]))
 				}
 			}
@@ -82,12 +88,12 @@ function objectDiffs(x, y) {
 	}
 
 	const objectDiffsY = (y, x, prefix = []) => {
-		if(typeof y === 'object' && x !== null) {
+		if(typeof y === "object" && x !== null) {
 			for(let prop in y) {
 				if(y.hasOwnProperty(prop)) {
-					if(typeof y[prop] === 'object' && y[prop] !== null) // y[prop] is an object
-						objectDiffsY(y[prop], (typeof x === 'object') ? x[prop] : undefined, prefix.concat([prop]));
-					else if (typeof x !== 'object' || x[prop] === undefined) // y[prop] is not an object and doesnt match x[prop]
+					if(typeof y[prop] === "object" && y[prop] !== null) // y[prop] is an object
+						objectDiffsY(y[prop], (typeof x === "object") ? x[prop] : undefined, prefix.concat([prop]));
+					else if (typeof x !== "object" || x[prop] === undefined) // y[prop] is not an object and doesnt match x[prop]
 						diffPaths.push(prefix.concat([prop]))
 				}
 			}
@@ -151,8 +157,8 @@ function objectSet(object, objectPath, value, options = {}) {
 		if(pathParts.length === 1)
 			object[objectKey] = value;
 		else {
-			if(typeof object[objectKey] !== 'object' || object[objectKey] === null) {
-				object[objectKey] = (options.array && (typeof objectKey === 'number' || (typeof objectKey === 'string' && /^\d+$/.test(objectKey))))
+			if(typeof object[objectKey] !== "object" || object[objectKey] === null) {
+				object[objectKey] = (options.array && (typeof objectKey === "number" || (typeof objectKey === "string" && /^\d+$/.test(objectKey))))
 					? []
 					: {};
 			}
@@ -170,8 +176,8 @@ function objectSetImmutable(object, objectPath, value, options = {}) {
 		return value;
 	else { // setting part of object
 		const objectKey = pathParts[0];
-		if(typeof object !== 'object' || object === null) { // create it
-			if((options.array && (typeof objectKey === 'number' || (typeof objectKey === 'string' && /^\d+$/.test(objectKey)))))
+		if(typeof object !== "object" || object === null) { // create it
+			if((options.array && (typeof objectKey === "number" || (typeof objectKey === "string" && /^\d+$/.test(objectKey)))))
 				object = [];
 			else
 				object = {};
@@ -179,7 +185,7 @@ function objectSetImmutable(object, objectPath, value, options = {}) {
 
 		if(Array.isArray(object)) {
 			const arrayClone = [...object];
-			if((options.array && (typeof objectKey === 'number' || (typeof objectKey === 'string' && /^\d+$/.test(objectKey)))))
+			if((options.array && (typeof objectKey === "number" || (typeof objectKey === "string" && /^\d+$/.test(objectKey)))))
 				arrayClone[Number(objectKey)] = objectSetImmutable(object[objectKey], pathParts.slice(1), value, options);
 			else
 				arrayClone[objectKey] = objectSetImmutable(object[objectKey], pathParts.slice(1), value, options);
@@ -215,7 +221,7 @@ function flattenObjectProps(object, options = {}) {
 		for(let prop in object) {
 			if(object.hasOwnProperty(prop)) {
 				flattened.push(pathFromPathParts(prefixParts.concat([prop]), options.separator));
-				if(typeof object[prop] === 'object' && object[prop] !== null)
+				if(typeof object[prop] === "object" && object[prop] !== null)
 					flattenObjectProps(object[prop], flattened, prefixParts.concat([prop]), options);
 			}
 		}
@@ -235,7 +241,7 @@ function flattenObject(object, options = {}) {
 
 		for(let prop in object) {
 			if(object.hasOwnProperty(prop)) {
-				if(typeof object[prop] === 'object' && object[prop] !== null)
+				if(typeof object[prop] === "object" && object[prop] !== null)
 					flattenObjectInternal(object[prop], flattened, prefixPathParts.concat([prop]), options);
 				else
 					flattened[pathFromPathParts(prefixPathParts.concat([prop]), options.separator)] = object[prop];
@@ -254,7 +260,7 @@ function * traverseObject(objectOrPrimitive, options = {}) {
 			? prefixPathParts
 			: pathFromPathParts(prefixPathParts, options.separator);
 
-		const objectOrPrimitiveIsBranch = typeof objectOrPrimitive === 'object' && objectOrPrimitive !== null;
+		const objectOrPrimitiveIsBranch = typeof objectOrPrimitive === "object" && objectOrPrimitive !== null;
 
 		if(options.branchNodes || !objectOrPrimitiveIsBranch)
 			yield [pathOrPathParts, objectOrPrimitive];
@@ -273,7 +279,7 @@ function sanitizePathParts(pathParts) {
 	return pathParts.filter(pathPart => pathPart.length);
 }
 
-function pathPartsFromPath(objectPathOrParts, separator = '.') {
+function pathPartsFromPath(objectPathOrParts, separator = defaultOptions.separator) {
 	const pathParts = Array.isArray(objectPathOrParts)
 		? objectPathOrParts
 		: objectPathOrParts.split(separator);
@@ -281,10 +287,93 @@ function pathPartsFromPath(objectPathOrParts, separator = '.') {
 	return sanitizePathParts(pathParts);
 }
 
-function pathFromPathParts(objectPathOrParts, separator = '.') {
+function pathFromPathParts(objectPathOrParts, separator = defaultOptions.separator) {
 	return Array.isArray(objectPathOrParts)
 		? sanitizePathParts(objectPathOrParts).join(separator)
 		: objectPathOrParts;
+}
+
+
+
+// START
+function mergeOptions(options = {}) {
+	return {
+		...defaultOptions,
+		...options
+	};
+}
+
+
+function pathIsAbsolute(pathOrPathParts, separator){
+	const pathParts = pathPartsFromPath(pathOrPathParts, separator);
+	return pathParts[0].length === 0; // first part of path is the separator (eg: /aa/bb/cc)
+}
+
+function normalizePathParts(pathOrPathParts, options) {
+	const mergedOptions = mergeOptions(options);
+
+	let pathParts = pathPartsFromPath(pathOrPathParts, mergedOptions.separator);
+
+	const absolutePath = pathIsAbsolute(pathParts, mergedOptions.separator);
+
+	pathParts = pathParts.filter(pathPart => pathPart.length > 0);
+
+	const includedPathParts = [];
+
+	for(let pathPart of pathParts) {
+		if(pathPart === mergedOptions.parent) {
+			if(includedPathParts.length > 0)
+				includedPathParts.pop();
+			else
+				throw new Error("Invalid path (above root)")
+		}
+		else if(pathPart !== mergedOptions.current)
+			includedPathParts.push(pathPart);
+	}
+
+	return {
+		pathParts: includedPathParts,
+		absolute: absolutePath,
+		options: mergedOptions
+	}
+
+}
+
+function normalizePath(pathOrPathParts, options) {
+	const {
+		pathParts,
+		absolute: absolutePath,
+		options: mergedOptions
+	} = normalizePathParts(pathOrPathParts, options);
+
+	if(absolutePath)
+		pathParts.unshift("");
+
+	return pathParts.join(mergedOptions.separator);
+}
+
+function resolvePath(pathOrPathParts, basePathOrPathParts = [], options = {}) {
+	const mergedOptions =  mergeOptions(options);
+	const pathParts = pathPartsFromPath(pathOrPathParts, mergedOptions.separator);
+
+	if(pathIsAbsolute(pathParts, mergedOptions.separator))
+		return normalizePath(pathParts, mergedOptions);
+	else {
+		const basePathParts = pathPartsFromPath(basePathOrPathParts, mergedOptions.separator);
+		return normalizePath([...basePathParts, ...pathParts], mergedOptions);
+	}
+}
+
+function resolvePathParts(pathOrPathParts, basePathOrPathParts, options = {}) {
+	const mergedOptions =  mergeOptions(options);
+	const pathParts = pathPartsFromPath(pathOrPathParts, mergedOptions.separator);
+
+	if(pathIsAbsolute(pathParts, mergedOptions.separator))
+		return normalizePathParts(pathParts, mergedOptions).pathParts;
+	else {
+		const basePathParts = pathPartsFromPath(basePathOrPathParts, mergedOptions.separator);
+		return normalizePathParts([...basePathParts, ...pathParts], mergedOptions).pathParts;
+	}
 }
 
 export {
@@ -305,6 +394,12 @@ export {
 	flattenObjectProps,
 	pathPartsFromPath,
 	pathFromPathParts,
+	mergeOptions,
+	pathIsAbsolute,
+	normalizePathParts,
+	normalizePath,
+	resolvePath,
+	resolvePathParts
 }
 
 export default {
@@ -324,5 +419,11 @@ export default {
 	flattenObject,
 	flattenObjectProps,
 	pathPartsFromPath,
-	pathFromPathParts
+	pathFromPathParts,
+	mergeOptions,
+	pathIsAbsolute,
+	normalizePathParts,
+	normalizePath,
+	resolvePath,
+	resolvePathParts
 }

@@ -1,6 +1,6 @@
 {
   "name": "object-subscriptions",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/johnvmt/object-subscriptions.git"
@@ -10,5 +10,5 @@
     "email": "johnvmt@gmail.com"
   },
   "type": "module",
-  "main": "./src/exports.js"
+  "main": "exports.js"
 }

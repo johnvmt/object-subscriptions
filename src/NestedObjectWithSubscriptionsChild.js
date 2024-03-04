@@ -1,9 +1,10 @@
 import NestedObjectWithSubscriptions from "./NestedObjectWithSubscriptions.js";
 
 class NestedObjectWithSubscriptionsChild {
-    constructor(parent, pathOrPathParts) {
+    constructor(parent, pathOrPathParts, options = {}) {
         this._parent = parent;
-        this._parentPathParts = this._parent.pathPartsFromPath(pathOrPathParts);
+        this._options = options;
+        this._parentPathParts = this._parent.pathPartsFromPath(pathOrPathParts, this.options.separator);
     }
 
     /**
@@ -15,11 +16,14 @@ class NestedObjectWithSubscriptionsChild {
     }
 
     /**
-     * Returns parent options (notably: separator)
+     * Returns merged child and parent options (notably: separator)
      * @returns {*}
      */
     get options() {
-        return this._parent.options;
+        return {
+            ...this._parent.options,
+            ...this._options
+        };
     }
 
     /**
@@ -96,7 +100,7 @@ class NestedObjectWithSubscriptionsChild {
     _parentPathPartsFromChildPathOrPathParts(childPathOrPathParts) {
         return [
             ...this._parentPathParts,
-            ...this._parent.pathPartsFromPath(childPathOrPathParts)
+            ...this._parent.pathPartsFromPath(childPathOrPathParts, this.options.separator)
         ];
     }
 
