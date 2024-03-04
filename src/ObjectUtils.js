@@ -276,7 +276,9 @@ function * traverseObject(objectOrPrimitive, options = {}) {
 }
 
 function sanitizePathParts(pathParts) {
-	return pathParts.filter(pathPart => pathPart.length);
+	return pathParts.filter(pathPart => {
+		return typeof pathPart !== "string" || pathPart.length
+	});
 }
 
 function pathPartsFromPath(objectPathOrParts, separator = defaultOptions.separator) {
