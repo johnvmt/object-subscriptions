@@ -71,15 +71,22 @@ class NestedObjectWithSubscriptions extends NestedObject {
 
 	/**
 	 * Calculate a new value from values in the object, and store the result
-	 * @param setPathOrPathParts
 	 * @param argsPathsOrPathsParts
 	 * @param calculator
+	 * @param setPathOrPathPartsOrCallback
 	 * @param options
 	 * @returns {(function(): void)|*}
 	 */
-	calculate(setPathOrPathParts, argsPathsOrPathsParts, calculator, options = {}) {
+	calculate(argsPathsOrPathsParts, calculator, setPathOrPathPartsOrCallback, options = {}) {
 		const argsPathsParts = argsPathsOrPathsParts.map(argsPathsPart => this.pathPartsFromPath(argsPathsPart));
-		const setPathParts = this.pathPartsFromPath(setPathOrPathParts);
+
+		const callback = typeof setPathOrPathPartsOrCallback === "function"
+			? setPathOrPathPartsOrCallback
+			: undefined;
+
+		const setPathParts = typeof setPathOrPathPartsOrCallback !== "function"
+			? this.pathFromPathParts(setPathOrPathPartsOrCallback)
+			: undefined;
 
 		const sanitizedOptions = {
 			fetch: true,
@@ -88,16 +95,21 @@ class NestedObjectWithSubscriptions extends NestedObject {
 
 		let subscribed = true;
 
+		const pushResult = (result) => {
+			if(callback)
+				callback(result);
+
+			if(setPathParts)
+				this.set(setPathParts, result);
+		}
+
 		const onArgMutated = () => {
 			const resultOrPromise = calculator(...argsPathsParts.map(argPathParts => this.get(argPathParts))) // spread args
 
-			if(resultOrPromise instanceof Promise) {
-				resultOrPromise.then(result => {
-					this.set(setPathParts, result);
-				});
-			}
+			if(resultOrPromise instanceof Promise)
+				resultOrPromise.then(pushResult);
 			else // result
-				this.set(setPathParts, resultOrPromise);
+				pushResult(resultOrPromise);
 		}
 
 		const argSubscriptions = [];
