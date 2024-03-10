@@ -30,7 +30,11 @@ class NestedObject {
 	}
 
 	delete(pathOrPathParts) {
-		return objectDelete(this._object, pathOrPathParts, this._options);
+		const pathParts = pathPartsFromPath(pathOrPathParts, this._options.separator);
+		if(pathParts.length === 0)
+			delete this._object;
+		else
+			return objectDelete(this._object, pathParts, this._options);
 	}
 
 	get(pathOrPathParts) {
@@ -38,7 +42,13 @@ class NestedObject {
 	}
 
 	set(pathOrPathParts, value) {
-		return objectSet(this._object, pathOrPathParts, value, this._options);
+		const pathParts = pathPartsFromPath(pathOrPathParts, this._options.separator);
+		if(pathParts.length === 0) {
+			this._object = value;
+			return value;
+		}
+		else
+			return objectSet(this._object, pathParts, value, this._options);
 	}
 
 	pathPartsFromPath(pathOrPathParts) {
