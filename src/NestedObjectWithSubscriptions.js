@@ -35,7 +35,7 @@ class NestedObjectWithSubscriptions extends NestedObject {
 	}
 
 	subscribe(pathOrPathParts, callback, options = {}) {
-		const sanitizedOptions = {
+		const mergedOptions = {
 			fetch: true,
 			...options
 		};
@@ -53,7 +53,7 @@ class NestedObjectWithSubscriptions extends NestedObject {
 			});
 		}
 
-		if(sanitizedOptions.fetch) // emit current value
+		if(mergedOptions.fetch) // emit current value
 			onMutation(subscriptionPath, this.get(subscriptionPathParts), NestedObjectWithSubscriptions.MUTATIONS.FETCH);
 
 		this._addSubscription(subscriptionPathParts, onMutation);
@@ -88,7 +88,7 @@ class NestedObjectWithSubscriptions extends NestedObject {
 			? this.pathFromPathParts(setPathOrPathPartsOrCallback)
 			: undefined;
 
-		const sanitizedOptions = {
+		const mergedOptions = {
 			fetch: true,
 			...options
 		};
@@ -119,7 +119,7 @@ class NestedObjectWithSubscriptions extends NestedObject {
 			argSubscriptions.push(this.subscribe(argPathOrPathParts, onArgMutated, {fetch: false})); // do not trigegr when adding individual args
 		}
 
-		if(sanitizedOptions.fetch)
+		if(mergedOptions.fetch)
 			onArgMutated();
 
 		// return unsubscribe function

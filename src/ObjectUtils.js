@@ -1,4 +1,4 @@
-// Object Utils v1.0.15
+// Object Utils v1.0.16
 const defaultOptions = {
 	separator: "/",
 	parent: "..",
@@ -308,7 +308,7 @@ function mergeOptions(options = {}) {
 
 function pathIsAbsolute(pathOrPathParts, separator){
 	const pathParts = pathPartsFromPath(pathOrPathParts, separator);
-	return pathParts[0].length === 0; // first part of path is the separator (eg: /aa/bb/cc)
+	return pathParts.length > 0 && pathParts[0].length === 0; // first part of path is the separator (eg: /aa/bb/cc)
 }
 
 function normalizePathParts(pathOrPathParts, options) {
@@ -318,7 +318,14 @@ function normalizePathParts(pathOrPathParts, options) {
 
 	const absolutePath = pathIsAbsolute(pathParts, mergedOptions.separator);
 
-	pathParts = pathParts.filter(pathPart => pathPart.length > 0);
+	pathParts = pathParts.filter(pathPart => {
+		if(typeof pathPart === "number")
+			return true;
+		else if(typeof pathPart === "string")
+			return pathPart.length > 0;
+		else
+			return false;
+	});
 
 	const includedPathParts = [];
 
