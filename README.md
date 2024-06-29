@@ -42,6 +42,7 @@ Nested object with mutations and subscribers
         console.log(pathParts, value);
     }
 
+## Defer execution
 
 ## Take a slice
 

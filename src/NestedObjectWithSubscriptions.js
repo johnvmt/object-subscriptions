@@ -24,6 +24,26 @@ class NestedObjectWithSubscriptions extends NestedObject {
 		}
 	}
 
+	// TODO fill this
+	setMulti(pathsAndValues) {
+		const mutations = [];
+		for(let [pathOrPathParts, value] of pathsAndValues) {
+			const pathParts = this.pathPartsFromPath(pathOrPathParts);
+			const path = this.pathFromPathParts(pathOrPathParts);
+			if(!this.has(pathParts) || this.get(pathParts) !== value) {
+				const result = super.set(pathParts, value);
+				mutations.push([path, pathParts, value, NestedObjectWithSubscriptions.MUTATIONS.SET])
+
+				//return result;
+			}
+		}
+
+		for(let mutationArgs of mutations) {
+			this._emitMutation(...mutationArgs);
+		}
+
+	}
+
 	delete(pathOrPathParts) {
 		const pathParts = this.pathPartsFromPath(pathOrPathParts);
 		const path = this.pathFromPathParts(pathOrPathParts);
@@ -36,7 +56,7 @@ class NestedObjectWithSubscriptions extends NestedObject {
 
 	subscribe(pathOrPathParts, callback, options = {}) {
 		const mergedOptions = {
-			fetch: true,
+			fetch: true, // get result immediately
 			...options
 		};
 
@@ -89,7 +109,8 @@ class NestedObjectWithSubscriptions extends NestedObject {
 			: undefined;
 
 		const mergedOptions = {
-			fetch: true,
+			fetch: true, // calculate immediately if true
+			defer: false, // wait for the next tick if true
 			...options
 		};
 
@@ -103,13 +124,31 @@ class NestedObjectWithSubscriptions extends NestedObject {
 				this.set(setPathParts, result);
 		}
 
-		const onArgMutated = () => {
+
+
+		const calculate = () => {
 			const resultOrPromise = calculator(...argsPathsParts.map(argPathParts => this.get(argPathParts))) // spread args
 
 			if(resultOrPromise instanceof Promise)
 				resultOrPromise.then(pushResult);
 			else // result
 				pushResult(resultOrPromise);
+		}
+
+		let deferPromise;
+		const onArgMutated = () => {
+			if(mergedOptions.defer) { // wait until next tick, so that all args can be sent
+				if(!deferPromise) { // no deferral in progress
+					deferPromise = Promise
+						.resolve()
+						.then(calculate)
+						.finally(() => {
+							deferPromise = undefined;
+						});
+				}
+			}
+			else // calculate immediately
+				calculate();
 		}
 
 		const argSubscriptions = [];
