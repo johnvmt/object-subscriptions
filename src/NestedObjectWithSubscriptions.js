@@ -45,11 +45,12 @@ class NestedObjectWithSubscriptions extends NestedObject {
 		const subscriptionPath = this.pathFromPathParts(pathOrPathParts);
 		const subscriptionPathParts = this.pathPartsFromPath(pathOrPathParts);
 
-		const onMutation = (mutatedPath, mutatedValue, mutation) => {
+		const onMutation = (mutatedPath, mutatedValue, mutation, tag) => {
 			callback(this.get(subscriptionPathParts), {
 				mutatedPath: mutatedPath,
 				mutatedValue: mutatedValue,
-				mutation: mutation
+				mutation: mutation,
+				tag: tag
 			});
 		}
 

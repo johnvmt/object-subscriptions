@@ -48,19 +48,21 @@ class NestedObjectWithSubscriptionsChild {
      * Sets value at specified path (relative to this child's root)
      * @param childPathOrPathParts
      * @param value
+     * @param tag
      * @returns {*}
      */
-    set(childPathOrPathParts, value) {
-        return this._parent.set(this._parentPathPartsFromChildPathOrPathParts(childPathOrPathParts), value);
+    set(childPathOrPathParts, value, tag = undefined) {
+        return this._parent.set(this._parentPathPartsFromChildPathOrPathParts(childPathOrPathParts), value, tag);
     }
 
     /**
      * Deleted value at specified path (relative to this child's root)
      * @param childPathOrPathParts
+     * @param tag
      * @returns {*}
      */
-    delete(childPathOrPathParts) {
-        return this._parent.delete(this._parentPathPartsFromChildPathOrPathParts(childPathOrPathParts));
+    delete(childPathOrPathParts, tag = undefined) {
+        return this._parent.delete(this._parentPathPartsFromChildPathOrPathParts(childPathOrPathParts), tag);
     }
 
     /**
