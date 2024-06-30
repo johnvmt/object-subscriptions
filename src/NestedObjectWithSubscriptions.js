@@ -14,42 +14,22 @@ class NestedObjectWithSubscriptions extends NestedObject {
 		return new NestedObjectWithSubscriptionsChild(this, pathOrPathParts);
 	}
 
-	set(pathOrPathParts, value) {
+	set(pathOrPathParts, value, tag) {
 		const pathParts = this.pathPartsFromPath(pathOrPathParts);
 		const path = this.pathFromPathParts(pathOrPathParts);
 		if(!this.has(pathParts) || this.get(pathParts) !== value) {
 			const result = super.set(pathParts, value);
-			this._emitMutation(path, pathParts, value, NestedObjectWithSubscriptions.MUTATIONS.SET);
+			this._emitMutation(path, pathParts, value, NestedObjectWithSubscriptions.MUTATIONS.SET, tag);
 			return result;
 		}
 	}
 
-	// TODO fill this
-	setMulti(pathsAndValues) {
-		const mutations = [];
-		for(let [pathOrPathParts, value] of pathsAndValues) {
-			const pathParts = this.pathPartsFromPath(pathOrPathParts);
-			const path = this.pathFromPathParts(pathOrPathParts);
-			if(!this.has(pathParts) || this.get(pathParts) !== value) {
-				const result = super.set(pathParts, value);
-				mutations.push([path, pathParts, value, NestedObjectWithSubscriptions.MUTATIONS.SET])
-
-				//return result;
-			}
-		}
-
-		for(let mutationArgs of mutations) {
-			this._emitMutation(...mutationArgs);
-		}
-
-	}
-
-	delete(pathOrPathParts) {
+	delete(pathOrPathParts, tag = undefined) {
 		const pathParts = this.pathPartsFromPath(pathOrPathParts);
 		const path = this.pathFromPathParts(pathOrPathParts);
 		if(this.has(pathParts)) {
 			const result = super.delete(pathParts);
-			this._emitMutation(path, pathParts, undefined, NestedObjectWithSubscriptions.MUTATIONS.DELETE);
+			this._emitMutation(path, pathParts, undefined, NestedObjectWithSubscriptions.MUTATIONS.DELETE, tag);
 			return result;
 		}
 	}
@@ -191,10 +171,10 @@ class NestedObjectWithSubscriptions extends NestedObject {
 			this._mutationCallbacks.deleteValue(pathParts);
 	}
 
-	_emitMutation(mutatedPath, mutatedPathParts, mutatedValue, mutation) {
+	_emitMutation(mutatedPath, mutatedPathParts, mutatedValue, mutation, tag = undefined) {
 		for(let mutationCallbacks of this._mutationCallbacks.familyValues(mutatedPathParts)) {
 			for(let mutationCallback of mutationCallbacks) {
-				mutationCallback(mutatedPath, mutatedValue, mutation);
+				mutationCallback(mutatedPath, mutatedValue, mutation, tag);
 			}
 		}
 	}
