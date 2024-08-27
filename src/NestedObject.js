@@ -2,8 +2,10 @@ import {
 	traverseObject,
 	objectHas,
 	objectSet,
+	objectSetImmutable,
 	objectGet,
 	objectDelete,
+	objectDeleteImmutable,
 	pathPartsFromPath,
 	pathFromPathParts
 } from "./ObjectUtils.js";
@@ -29,26 +31,50 @@ class NestedObject {
 		return objectHas(this._object, pathOrPathParts, this._options);
 	}
 
-	delete(pathOrPathParts) {
-		const pathParts = pathPartsFromPath(pathOrPathParts, this._options.separator);
-		if(pathParts.length === 0)
-			delete this._object;
-		else
-			return objectDelete(this._object, pathParts, this._options);
+	delete(pathOrPathParts, options = {}) {
+		const mergedOptions = {
+			immutable: false,
+			...this._options,
+			...options
+		};
+		const pathParts = pathPartsFromPath(pathOrPathParts, mergedOptions.separator);
+
+		if(mergedOptions.immutable) {
+			this._object = objectDeleteImmutable(this._object, pathParts, mergedOptions);
+			return this._options;
+		}
+		else {
+			if(pathParts.length === 0)
+				delete this._object;
+			else
+				return objectDelete(this._object, pathParts, this._options);
+		}
 	}
 
 	get(pathOrPathParts) {
 		return objectGet(this._object, pathOrPathParts, this._options);
 	}
 
-	set(pathOrPathParts, value) {
-		const pathParts = pathPartsFromPath(pathOrPathParts, this._options.separator);
-		if(pathParts.length === 0) {
-			this._object = value;
-			return value;
+	set(pathOrPathParts, value, options = {}) {
+		const mergedOptions = {
+			immutable: false,
+			...this._options,
+			...options
+		};
+		const pathParts = pathPartsFromPath(pathOrPathParts, mergedOptions.separator);
+
+		if(mergedOptions.immutable) {
+			this._object = objectSetImmutable(this._object, pathParts, value, mergedOptions);
+			return this._object;
 		}
-		else
-			return objectSet(this._object, pathParts, value, this._options);
+		else {
+			if(pathParts.length === 0) {
+				this._object = value;
+				return value;
+			}
+			else
+				return objectSet(this._object, pathParts, value, mergedOptions);
+		}
 	}
 
 	pathPartsFromPath(pathOrPathParts) {

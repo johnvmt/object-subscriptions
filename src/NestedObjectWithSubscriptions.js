@@ -14,22 +14,32 @@ class NestedObjectWithSubscriptions extends NestedObject {
 		return new NestedObjectWithSubscriptionsChild(this, pathOrPathParts);
 	}
 
-	set(pathOrPathParts, value, tag) {
+	set(pathOrPathParts, value, options = {}) {
 		const pathParts = this.pathPartsFromPath(pathOrPathParts);
 		const path = this.pathFromPathParts(pathOrPathParts);
+		const mergedOptions = {
+			...this.options,
+			...options
+		};
+
 		if(!this.has(pathParts) || this.get(pathParts) !== value) {
-			const result = super.set(pathParts, value);
-			this._emitMutation(path, pathParts, value, NestedObjectWithSubscriptions.MUTATIONS.SET, tag);
+			const result = super.set(pathParts, value, mergedOptions);
+			this._emitMutation(path, pathParts, value, NestedObjectWithSubscriptions.MUTATIONS.SET, mergedOptions.tag);
 			return result;
 		}
 	}
 
-	delete(pathOrPathParts, tag = undefined) {
+	delete(pathOrPathParts, options = {}) {
 		const pathParts = this.pathPartsFromPath(pathOrPathParts);
 		const path = this.pathFromPathParts(pathOrPathParts);
+		const mergedOptions = {
+			...this.options,
+			...options
+		};
+
 		if(this.has(pathParts)) {
-			const result = super.delete(pathParts);
-			this._emitMutation(path, pathParts, undefined, NestedObjectWithSubscriptions.MUTATIONS.DELETE, tag);
+			const result = super.delete(pathParts, mergedOptions);
+			this._emitMutation(path, pathParts, undefined, NestedObjectWithSubscriptions.MUTATIONS.DELETE, mergedOptions.tag);
 			return result;
 		}
 	}
@@ -104,8 +114,6 @@ class NestedObjectWithSubscriptions extends NestedObject {
 			if(setPathParts)
 				this.set(setPathParts, result);
 		}
-
-
 
 		const calculate = () => {
 			const resultOrPromise = calculator(...argsPathsParts.map(argPathParts => this.get(argPathParts))) // spread args
