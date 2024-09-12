@@ -8,7 +8,7 @@ import {
 	objectDeleteImmutable,
 	pathPartsFromPath,
 	pathFromPathParts
-} from "./ObjectUtils.js";
+} from "object-path-utilities";
 
 class NestedObject {
 	constructor(object = {}, options = {}) {
