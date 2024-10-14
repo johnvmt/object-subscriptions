@@ -1,10 +1,14 @@
 import NestedObjectWithSubscriptions from "./NestedObjectWithSubscriptions.js";
+import {
+    pathPartsFromPath,
+    pathFromPathParts
+} from "object-path-utilities";
 
 class NestedObjectWithSubscriptionsChild {
-    constructor(parent, pathOrPathParts, options = {}) {
-        this._parent = parent;
+    constructor(root, pathOrPathParts, options = {}) {
+        this._root = root;
         this._options = options;
-        this._parentPathParts = this._parent.pathPartsFromPath(pathOrPathParts, this.options.separator);
+        this._rootPathParts = this._root.pathPartsFromPath(pathOrPathParts, this.options.separator);
     }
 
     /**
@@ -12,7 +16,7 @@ class NestedObjectWithSubscriptionsChild {
      * @returns {*}
      */
     get parent() {
-        return this._parent;
+        return this._root;
     }
 
     /**
@@ -21,7 +25,7 @@ class NestedObjectWithSubscriptionsChild {
      */
     get options() {
         return {
-            ...this._parent.options,
+            ...this._root.options,
             ...this._options
         };
     }
@@ -32,7 +36,7 @@ class NestedObjectWithSubscriptionsChild {
      * @returns {NestedObjectWithSubscriptionsChild|*}
      */
     child(childPathOrPathParts) {
-        return this._parent.child(this._parentPathPartsFromChildPathOrPathParts(childPathOrPathParts));
+        return this._root.child(this._rootPathPartsFromChildPathOrPathParts(childPathOrPathParts));
     }
 
     /**
@@ -41,7 +45,7 @@ class NestedObjectWithSubscriptionsChild {
      * @returns {*}
      */
     get(childPathOrPathParts) {
-        return this._parent.get(this._parentPathPartsFromChildPathOrPathParts(childPathOrPathParts));
+        return this._root.get(this._rootPathPartsFromChildPathOrPathParts(childPathOrPathParts));
     }
 
     /**
@@ -52,7 +56,7 @@ class NestedObjectWithSubscriptionsChild {
      * @returns {*}
      */
     set(childPathOrPathParts, value, tag = undefined) {
-        return this._parent.set(this._parentPathPartsFromChildPathOrPathParts(childPathOrPathParts), value, tag);
+        return this._root.set(this._rootPathPartsFromChildPathOrPathParts(childPathOrPathParts), value, tag);
     }
 
     /**
@@ -62,7 +66,7 @@ class NestedObjectWithSubscriptionsChild {
      * @returns {*}
      */
     delete(childPathOrPathParts, tag = undefined) {
-        return this._parent.delete(this._parentPathPartsFromChildPathOrPathParts(childPathOrPathParts), tag);
+        return this._root.delete(this._rootPathPartsFromChildPathOrPathParts(childPathOrPathParts), tag);
     }
 
     /**
@@ -73,24 +77,39 @@ class NestedObjectWithSubscriptionsChild {
      * @returns {(function(): void)|*|Promise<PushSubscription>}
      */
     subscribe(childPathOrPathParts, callback, options = {}) {
-        return this._parent.subscribe(this._parentPathPartsFromChildPathOrPathParts(childPathOrPathParts), callback, options);
+        return this._root.subscribe(
+            this._rootPathPartsFromChildPathOrPathParts(childPathOrPathParts),
+            // override callback
+            (value, rootMutationMetadata) => {
+                callback(value, this._childMutationMetadataFromRootMutationMetadata(rootMutationMetadata))
+            },
+            options
+        );
     }
 
     /**
      * Returns calculation subscription using paths relative to this child's root
-     * @param setChildPathOrPathParts
-     * @param argsChildPathsOrPathsParts
+     * @param argsPathsOrPathsParts
      * @param calculator
-     * @param options
+     * @param setPathOrPathPartsOrCallbackOrOptions
+     * @param optionsOrUndefined
      * @returns {(function(): void)|*}
      */
-    calculate(setChildPathOrPathParts, argsChildPathsOrPathsParts, calculator, options = {}) {
-        const setParentPathOrPathParts = this._parentPathPartsFromChildPathOrPathParts(setChildPathOrPathParts);
-        const argsParentPathsOrPathsParts = argsChildPathsOrPathsParts.map(
-            argsChildPathOrPathParts => this._parentPathPartsFromChildPathOrPathParts(argsChildPathOrPathParts)
-        );
+    calculate(argsPathsOrPathsParts, calculator, setPathOrPathPartsOrCallbackOrOptions, optionsOrUndefined) {
+        // convert to root path parts
+        const rootArgsPathsParts = argsPathsOrPathsParts.map(argsPathsPart => this._rootPathPartsFromChildPathOrPathParts(argsPathsPart));
 
-        return this._parent.calculate(setParentPathOrPathParts, argsParentPathsOrPathsParts, calculator, options);
+        const rootSetPathParts = (typeof setPathOrPathPartsOrCallbackOrOptions === "string" || Array.isArray(setPathOrPathPartsOrCallbackOrOptions))
+            ? this._rootPathPartsFromChildPathOrPathParts(setPathOrPathPartsOrCallbackOrOptions)
+            : undefined;
+
+        return this._root.calculate(
+            rootArgsPathsParts,
+            calculator,
+            // path in root or callback or options
+            rootSetPathParts ?? setPathOrPathPartsOrCallbackOrOptions,
+            optionsOrUndefined
+        );
     }
 
     /**
@@ -99,11 +118,38 @@ class NestedObjectWithSubscriptionsChild {
      * @returns {*[]}
      * @private
      */
-    _parentPathPartsFromChildPathOrPathParts(childPathOrPathParts) {
+    _rootPathPartsFromChildPathOrPathParts(childPathOrPathParts) {
         return [
-            ...this._parentPathParts,
-            ...this._parent.pathPartsFromPath(childPathOrPathParts, this.options.separator)
+            ...this._rootPathParts,
+            ...this._root.pathPartsFromPath(childPathOrPathParts, this.options.separator)
         ];
+    }
+
+    _childPathPartsFromRootPathOrPathParts(parentPathOrPathParts) {
+        const parentPathParts = this.pathPartsFromPath(parentPathOrPathParts);
+        return parentPathParts.slice(this._rootPathParts.length); // slice off parent path parts
+    }
+
+    pathPartsFromPath(pathOrPathParts) {
+        return pathPartsFromPath(pathOrPathParts, this._options.separator);
+    }
+
+    pathFromPathParts(pathOrPathParts) {
+        return pathFromPathParts(pathOrPathParts, this._options.separator);
+    }
+
+    _childMutationMetadataFromRootMutationMetadata(rootMutationMetadata) {
+        const rootMutatedPathParts = rootMutationMetadata.mutatedPathParts;
+
+        // add child paths
+        const childMutatedPathParts = this._childPathPartsFromRootPathOrPathParts(rootMutatedPathParts);
+        const childMutatedPath = this.pathFromPathParts(childMutatedPathParts);
+
+        return {
+            ...rootMutationMetadata,
+            mutatedPath: childMutatedPath,
+            mutatedPathParts: childMutatedPathParts
+        }
     }
 
     /**

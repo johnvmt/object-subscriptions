@@ -44,6 +44,47 @@ Nested object with mutations and subscribers
 
 ## Defer execution
 
+    import {NestedObjectWithSubscriptions} from "object-subscriptions";
+
+    const obj = new NestedObjectWithSubscriptions({}, {separator: '/'});
+
+    obj.set("aa/bb", 123);
+    obj.set("cc/dd", 123);
+    
+    obj.calculate(["aa/bb", "cc/dd"], (a, b) => {
+        return a + b;
+    }, "ee/ff", {defer: true})
+    
+    obj.subscribe("ee/ff", (value) => {
+        console.log("VAL!", value);
+    });
+
+    for(let [pathParts, value] of obj.entries({pathParts: true})) {
+        console.log(pathParts, value);
+    }
+
+
+## Debounced calculation
+
+    import {NestedObjectWithSubscriptions} from "object-subscriptions";
+
+    const obj = new NestedObjectWithSubscriptions({}, {separator: '/'});
+
+    obj.set("aa/bb", 123);
+    obj.set("cc/dd", 123);
+    
+    obj.calculate(["aa/bb", "cc/dd"], (a, b) => {
+        return a + b;
+    }, "ee/ff", {debounce: 100, immediate: false})
+    
+    obj.subscribe("ee/ff", (value) => {
+        console.log("VAL!", value);
+    });
+
+    for(let [pathParts, value] of obj.entries({pathParts: true})) {
+        console.log(pathParts, value);
+    }
+
 ## Take a slice
 
     import {NestedObjectWithSubscriptions} from "object-subscriptions";

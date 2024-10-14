@@ -1,8 +1,9 @@
-// v0.0.2
-import ExtendedError from "./ExtendedError.js";
+// v0.0.3
+import ExtendedError from "./utils/ExtendedError.js";
 import NestedObject from "./NestedObject.js";
 import NestedObjectTree from "./NestedObjectTree.js";
 import NestedObjectWithSubscriptionsChild from "./NestedObjectWithSubscriptionsChild.js";
+import debounce from "./utils/debounce.js";
 
 class NestedObjectWithSubscriptions extends NestedObject {
 	constructor(object, options) {
@@ -10,10 +11,27 @@ class NestedObjectWithSubscriptions extends NestedObject {
 		this._mutationCallbacks = new NestedObjectTree(options);
 	}
 
-	child(pathOrPathParts) {
-		return new NestedObjectWithSubscriptionsChild(this, pathOrPathParts);
+	/**
+	 * Returns a nested object from a path
+	 * @param pathOrPathParts
+	 * @param options
+	 * @returns {NestedObjectWithSubscriptionsChild}
+	 */
+	child(pathOrPathParts, options = {}) {
+		const mergedOptions = {
+			...this.options,
+			...options
+		}
+		return new NestedObjectWithSubscriptionsChild(this, pathOrPathParts, mergedOptions);
 	}
 
+	/**
+	 * Set a value on a path in the object
+	 * @param pathOrPathParts
+	 * @param value
+	 * @param options
+	 * @returns {{}|*}
+	 */
 	set(pathOrPathParts, value, options = {}) {
 		const pathParts = this.pathPartsFromPath(pathOrPathParts);
 		const path = this.pathFromPathParts(pathOrPathParts);
@@ -22,13 +40,26 @@ class NestedObjectWithSubscriptions extends NestedObject {
 			...options
 		};
 
-		if(!this.has(pathParts) || this.get(pathParts) !== value) {
+		const previousValue = this.get(pathParts);
+
+		if(!this.has(pathParts) || previousValue !== value) {
 			const result = super.set(pathParts, value, mergedOptions);
-			this._emitMutation(path, pathParts, value, NestedObjectWithSubscriptions.MUTATIONS.SET, mergedOptions.tag);
+			this._emitMutation(path, pathParts, {
+				mutation: NestedObjectWithSubscriptions.MUTATIONS.SET,
+				mutatedValue: value,
+				previousValue: previousValue,
+				tag: mergedOptions.tag
+			});
 			return result;
 		}
 	}
 
+	/**
+	 * Delete a path in the object
+	 * @param pathOrPathParts
+	 * @param options
+	 * @returns {*|{separator: string}}
+	 */
 	delete(pathOrPathParts, options = {}) {
 		const pathParts = this.pathPartsFromPath(pathOrPathParts);
 		const path = this.pathFromPathParts(pathOrPathParts);
@@ -38,12 +69,25 @@ class NestedObjectWithSubscriptions extends NestedObject {
 		};
 
 		if(this.has(pathParts)) {
+			const previousValue = this.get(pathParts);
 			const result = super.delete(pathParts, mergedOptions);
-			this._emitMutation(path, pathParts, undefined, NestedObjectWithSubscriptions.MUTATIONS.DELETE, mergedOptions.tag);
+			this._emitMutation(path, pathParts, {
+				mutation: NestedObjectWithSubscriptions.MUTATIONS.DELETE,
+				mutatedValue: undefined,
+				previousValue: previousValue,
+				tag: mergedOptions.tag
+			});
 			return result;
 		}
 	}
 
+	/**
+	 * Subscribes to mutations on a path in the object
+	 * @param pathOrPathParts
+	 * @param callback
+	 * @param options
+	 * @returns {(function(): void)|*}
+	 */
 	subscribe(pathOrPathParts, callback, options = {}) {
 		const mergedOptions = {
 			fetch: true, // get result immediately
@@ -55,17 +99,18 @@ class NestedObjectWithSubscriptions extends NestedObject {
 		const subscriptionPath = this.pathFromPathParts(pathOrPathParts);
 		const subscriptionPathParts = this.pathPartsFromPath(pathOrPathParts);
 
-		const onMutation = (mutatedPath, mutatedValue, mutation, tag) => {
-			callback(this.get(subscriptionPathParts), {
-				mutatedPath: mutatedPath,
-				mutatedValue: mutatedValue,
-				mutation: mutation,
-				tag: tag
-			});
+		const onMutation = (mutationMetadata) => {
+			callback(this.get(subscriptionPathParts), mutationMetadata);
 		}
 
-		if(mergedOptions.fetch) // emit current value
-			onMutation(subscriptionPath, this.get(subscriptionPathParts), NestedObjectWithSubscriptions.MUTATIONS.FETCH);
+		if(mergedOptions.fetch) {// emit current value
+			onMutation({
+				mutation: NestedObjectWithSubscriptions.MUTATIONS.FETCH,
+				mutatedPath: subscriptionPath,
+				mutatedPathParts: subscriptionPathParts,
+				mutatedValue: this.get(subscriptionPathParts)
+			});
+		}
 
 		this._addSubscription(subscriptionPathParts, onMutation);
 
@@ -81,29 +126,43 @@ class NestedObjectWithSubscriptions extends NestedObject {
 	}
 
 	/**
-	 * Calculate a new value from values in the object, and store the result
+	 * Calculate a new value from values in the object, and optionally store the result
 	 * @param argsPathsOrPathsParts
 	 * @param calculator
-	 * @param setPathOrPathPartsOrCallback
-	 * @param options
+	 * @param setPathOrPathPartsOrCallbackOrOptions
+	 * @param optionsOrUndefined
 	 * @returns {(function(): void)|*}
 	 */
-	calculate(argsPathsOrPathsParts, calculator, setPathOrPathPartsOrCallback, options = {}) {
+	calculate(argsPathsOrPathsParts, calculator, setPathOrPathPartsOrCallbackOrOptions, optionsOrUndefined) {
 		const argsPathsParts = argsPathsOrPathsParts.map(argsPathsPart => this.pathPartsFromPath(argsPathsPart));
 
-		const callback = typeof setPathOrPathPartsOrCallback === "function"
-			? setPathOrPathPartsOrCallback
+		const callback = typeof setPathOrPathPartsOrCallbackOrOptions === "function"
+			? setPathOrPathPartsOrCallbackOrOptions
 			: undefined;
 
-		const setPathParts = typeof setPathOrPathPartsOrCallback !== "function"
-			? this.pathFromPathParts(setPathOrPathPartsOrCallback)
+		const setPathParts = (typeof setPathOrPathPartsOrCallbackOrOptions === "string" || Array.isArray(setPathOrPathPartsOrCallbackOrOptions))
+			? this.pathFromPathParts(setPathOrPathPartsOrCallbackOrOptions)
 			: undefined;
 
-		const mergedOptions = {
+		let options = {};
+		if(typeof optionsOrUndefined === "object")
+			options = optionsOrUndefined;
+		else if(typeof setPathOrPathPartsOrCallbackOrOptions === "object" && !Array.isArray(setPathOrPathPartsOrCallbackOrOptions))
+			options = setPathOrPathPartsOrCallbackOrOptions;
+
+		let mergedOptions = {
 			fetch: true, // calculate immediately if true
-			defer: false, // wait for the next tick if true
+			defer: false, // wait for the next tick if true (debounce = 0)
+			debounce: false,
+			immediate: true,
 			...options
 		};
+
+		// for compatibility, set debounce when defer is set
+		if(mergedOptions.defer && !mergedOptions.debounce) {
+			mergedOptions.debounce = 0;
+			mergedOptions.immediate = false;
+		}
 
 		let subscribed = true;
 
@@ -124,31 +183,19 @@ class NestedObjectWithSubscriptions extends NestedObject {
 				pushResult(resultOrPromise);
 		}
 
-		let deferPromise;
-		const onArgMutated = () => {
-			if(mergedOptions.defer) { // wait until next tick, so that all args can be sent
-				if(!deferPromise) { // no deferral in progress
-					deferPromise = Promise
-						.resolve()
-						.then(calculate)
-						.finally(() => {
-							deferPromise = undefined;
-						});
-				}
-			}
-			else // calculate immediately
-				calculate();
-		}
+		const debouncedCalculate = (typeof mergedOptions.debounce === "number")
+			? debounce(calculate, mergedOptions.debounce, mergedOptions.immediate)
+			: calculate; // no debounce
 
 		const argSubscriptions = [];
 
 		// subscribe to all args
 		for(let argPathOrPathParts of argsPathsOrPathsParts) {
-			argSubscriptions.push(this.subscribe(argPathOrPathParts, onArgMutated, {fetch: false})); // do not trigegr when adding individual args
+			argSubscriptions.push(this.subscribe(argPathOrPathParts, debouncedCalculate, {fetch: false})); // do not trigegr when adding individual args
 		}
 
 		if(mergedOptions.fetch)
-			onArgMutated();
+			debouncedCalculate();
 
 		// return unsubscribe function
 		return () => {
@@ -164,6 +211,12 @@ class NestedObjectWithSubscriptions extends NestedObject {
 		}
 	}
 
+	/**
+	 * Adds a mutation to the tracked list
+	 * @param pathParts
+	 * @param onMutation
+	 * @private
+	 */
 	_addSubscription(pathParts, onMutation) {
 		if(!this._mutationCallbacks.hasValue(pathParts))
 			this._mutationCallbacks.setValue(pathParts, new Set());
@@ -171,6 +224,12 @@ class NestedObjectWithSubscriptions extends NestedObject {
 		this._mutationCallbacks.getValue(pathParts).add(onMutation);
 	}
 
+	/**
+	 * Deletes a subscription
+	 * @param pathParts
+	 * @param onMutation
+	 * @private
+	 */
 	_removeSubscription(pathParts, onMutation) {
 		const pathMutationCallbacks = this._mutationCallbacks.getValue(pathParts);
 
@@ -180,14 +239,32 @@ class NestedObjectWithSubscriptions extends NestedObject {
 			this._mutationCallbacks.deleteValue(pathParts);
 	}
 
-	_emitMutation(mutatedPath, mutatedPathParts, mutatedValue, mutation, tag = undefined) {
+	/**
+	 * Emits mutation to all listeners
+	 * @param mutatedPath
+	 * @param mutatedPathParts
+	 * @param mutationMetadata
+	 * @private
+	 */
+	_emitMutation(mutatedPath, mutatedPathParts, mutationMetadata) {
+		const mergedMutationMetadata = {
+			mutatedPath: mutatedPath,
+			mutatedPathParts: mutatedPathParts,
+			...mutationMetadata
+		};
+
 		for(let mutationCallbacks of this._mutationCallbacks.familyValues(mutatedPathParts)) {
 			for(let mutationCallback of mutationCallbacks) {
-				mutationCallback(mutatedPath, mutatedValue, mutation, tag);
+				mutationCallback(mergedMutationMetadata);
 			}
 		}
 	}
 
+	/**
+	 * Returns mutation types
+	 * @returns {Readonly<{FETCH: string, DELETE: string, SET: string}>}
+	 * @constructor
+	 */
 	static get MUTATIONS() {
 		return Object.freeze({
 			SET: "SET",
